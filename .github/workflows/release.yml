@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install build backend and package
+        run: pip install hatchling && pip install -e ".[dev]"
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Mypy
+        run: mypy starter
+
+      - name: Pytest
+        env:
+          STARTER_WORKSPACE_ROOT: ${{ github.workspace }}
+        run: pytest -q
+
+      - name: Build distribution
+        run: pip install hatch && hatch build
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Extract release notes from CHANGELOG
+        run: |
+          python - <<'EOF'
+          import re
+
+          version = "${{ steps.version.outputs.VERSION }}"
+          with open("CHANGELOG.md") as f:
+              content = f.read()
+
+          # Match the versioned section for this release, then fall back to [Unreleased].
+          pattern = (
+              rf"## \[{re.escape(version)}\][^\n]*\n(.*?)(?=\n## \[|\Z)"
+          )
+          match = re.search(pattern, content, re.DOTALL)
+          if not match:
+              pattern = r"## \[Unreleased\][^\n]*\n(.*?)(?=\n## \[|\Z)"
+              match = re.search(pattern, content, re.DOTALL)
+
+          notes = match.group(1).strip() if match else "See CHANGELOG.md for details."
+          with open("release_notes.md", "w") as f:
+              f.write(notes)
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "starter v${{ steps.version.outputs.VERSION }}"
+          body_path: release_notes.md
+          files: dist/*
+          draft: false
+          prerelease: >-
+            ${{
+              contains(github.ref_name, 'alpha') ||
+              contains(github.ref_name, 'beta') ||
+              contains(github.ref_name, 'rc')
+            }}

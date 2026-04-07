@@ -1,0 +1,178 @@
+# ============================================================
+# Build system — Hatch (PEP 517/518/621 compliant)
+# ============================================================
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# ============================================================
+# Project metadata — PEP 621
+# ============================================================
+[project]
+name = "starter"
+dynamic = ["version"]
+description = "Reusable Python infrastructure subsystems: config, logging, tracking, profiling, artifacts, runtime, and sweeps."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Nguyen Duc Danh (Mysorf)", email = "uydanh214@gmail.com" },
+]
+maintainers = [
+    { name = "Nguyen Duc Danh (Mysorf)", email = "uydanh214@gmail.com" },
+]
+requires-python = ">=3.10"
+keywords = [
+    "infrastructure",
+    "machine-learning",
+    "hydra",
+    "configuration",
+    "logging",
+    "tracking",
+    "experiment",
+    "hyperparameter",
+    "sweep",
+    "artifacts",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+dependencies = [
+    "hydra-core>=1.3,<2.0",
+    "omegaconf>=2.3,<3.0",
+    "PyYAML>=6.0,<7.0",
+]
+
+# ============================================================
+# Optional extras
+# ============================================================
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4,<9.0",
+    "hypothesis>=6.0",
+    "ruff>=0.15,<1.0",
+    "mypy>=1.5,<2.0",
+    "pre-commit>=3.4,<5.0",
+    "bandit>=1.7,<2.0",
+    "hatch>=1.12",
+]
+tracking-wandb = [
+    "wandb>=0.25,<1.0",
+]
+logging-structlog = [
+    "structlog>=25,<26",
+]
+logging-rich = [
+    "rich>=14,<15",
+]
+profiling-pandas = [
+    "pandas>=2.0,<3.0",
+]
+# Install all optional backends at once
+all = [
+    "wandb>=0.25,<1.0",
+    "structlog>=25,<26",
+    "rich>=14,<15",
+    "pandas>=2.0,<3.0",
+]
+
+# ============================================================
+# Project URLs
+# ============================================================
+[project.urls]
+Homepage = "https://github.com/mysorf-9239/starter"
+Repository = "https://github.com/mysorf-9239/starter"
+Documentation = "https://github.com/mysorf-9239/starter/blob/main/README.md"
+Changelog = "https://github.com/mysorf-9239/starter/blob/main/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/mysorf-9239/starter/issues"
+
+# ============================================================
+# CLI entry points
+# ============================================================
+[project.scripts]
+starter = "starter.cli:main"
+
+# ============================================================
+# Hatch build configuration
+# ============================================================
+[tool.hatch.version]
+path = "starter/version.py"
+pattern = '__version__ = "(?P<version>[^"]+)"'
+
+[tool.hatch.build.targets.wheel]
+packages = ["starter"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "starter/",
+    "conf/",
+    "tests/",
+    "README.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "CITATION.cff",
+    "LICENSE",
+    "pyproject.toml",
+]
+
+# ============================================================
+# Ruff — linting and formatting
+# ============================================================
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = [
+    ".venv",
+    ".ruff_cache",
+    ".mypy_cache",
+    "__pycache__",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+# ============================================================
+# Mypy — static type checking
+# ============================================================
+[tool.mypy]
+python_version = "3.10"
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+disallow_untyped_defs = true
+ignore_missing_imports = false
+packages = ["starter"]
+
+[[tool.mypy.overrides]]
+module = ["wandb"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["pandas"]
+ignore_missing_imports = true
+
+# ============================================================
+# Pytest
+# ============================================================
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

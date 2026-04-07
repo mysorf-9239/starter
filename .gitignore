@@ -1,0 +1,43 @@
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Test and lint caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.hypothesis/
+
+# Local environments
+.env
+.venv/
+venv/
+ENV/
+# Exception: bundled conf/env/ must be tracked
+!starter/conf/env/
+!conf/env/
+
+# Hydra outputs
+.hydra/
+outputs/
+
+# IDE / OS noise
+.idea/
+.vscode/
+.DS_Store
+
+# Temporary files
+*.log
+*.tmp
+*~
+
+# Security scan reports
+bandit-report.json

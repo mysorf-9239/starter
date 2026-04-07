@@ -1,0 +1,4 @@
+debug: false
+seed: 7
+strict_config: true
+profile: default

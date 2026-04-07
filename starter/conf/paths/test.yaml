@@ -1,0 +1,5 @@
+repo_root: ${path_guard:repo_root}
+config_root: ${paths.repo_root}/conf
+output_dir: ${paths.repo_root}/tests/.outputs
+artifacts_dir: ${paths.repo_root}/tests/.artifacts
+cache_dir: ${paths.repo_root}/tests/.cache

@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: >
+  If this software is used in research, please cite it using the metadata below.
+title: "Starter: Reusable Python Infrastructure Subsystems"
+abstract: >
+  Starter is a reusable Python foundation providing shared infrastructure
+  subsystems for machine learning and research projects. It includes subsystems
+  for configuration management (Hydra/OmegaConf), structured logging, experiment
+  tracking, data profiling, artifact management, bootstrap orchestration, and
+  hyperparameter search.
+authors:
+  - family-names: Nguyen
+    given-names: Duc Danh
+    alias: Mysorf
+    email: uydanh214@gmail.com
+version: "0.1.0"
+date-released: "2026-04-07"
+license: MIT
+repository-code: "https://github.com/mysorf-9239/starter"
+url: "https://github.com/mysorf-9239/starter"
+keywords:
+  - infrastructure
+  - machine-learning
+  - hydra
+  - configuration
+  - logging
+  - experiment-tracking
+  - hyperparameter-optimization
+  - artifacts
+  - Python
+type: software

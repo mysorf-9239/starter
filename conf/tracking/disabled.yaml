@@ -1,0 +1,7 @@
+backend: disabled
+enabled: false
+wandb:
+  project: null
+  entity: null
+  api_key: null
+  mode: disabled

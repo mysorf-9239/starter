@@ -1,0 +1,7 @@
+backend: structlog
+enabled: true
+level: INFO
+format: "%(message)s"
+path: null
+json: false
+context: {}
