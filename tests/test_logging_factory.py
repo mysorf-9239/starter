@@ -38,6 +38,7 @@ def test_build_file_logger_creates_log_file(tmp_path: Path) -> None:
         }
     )
 
+    assert not path.parent.exists()
     logger = build_logger(cfg, name="starter.file")
     logger.info("written")
 

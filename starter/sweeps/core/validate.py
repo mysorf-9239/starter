@@ -22,6 +22,8 @@ def validate_sweeps_config(cfg: SweepsConfig) -> None:
             f"Unsupported sweeps backend: {cfg.backend!r}. "
             f"Valid options: {sorted(_SUPPORTED_BACKENDS)}"
         )
+    if not cfg.enabled:
+        raise ValueError("sweeps.enabled must be true when constructing or running sweeps.")
     if cfg.strategy not in _SUPPORTED_STRATEGIES:
         raise ValueError(
             f"Unsupported sweeps strategy: {cfg.strategy!r}. "

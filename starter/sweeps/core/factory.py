@@ -57,7 +57,11 @@ def build_sweep_runner(
 
         if search_space is None:
             raise ValueError("search_space is required for WandB backend.")
-        return WandbRunner(search_space=search_space)
+        return WandbRunner(
+            search_space=search_space,
+            config=config,
+            base_overrides=base_overrides or [],
+        )
 
     raise ValueError(
         f"Unsupported sweeps backend: {config.backend!r}. Valid options: ['local', 'wandb']"

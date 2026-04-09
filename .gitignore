@@ -41,3 +41,6 @@ outputs/
 
 # Security scan reports
 bandit-report.json
+
+# Wandb log folder
+wandb/

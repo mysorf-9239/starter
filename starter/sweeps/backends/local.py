@@ -115,8 +115,8 @@ class LocalRunner:
                     logger.warning("tracker.log_params() failed for trial %d: %s", idx, exc)
 
             try:
-                ctx = bootstrap(self._base_overrides)
-                metrics = trial_fn(ctx, params)
+                with bootstrap(self._base_overrides) as ctx:
+                    metrics = trial_fn(ctx, params)
                 result = SweepResult(
                     trial_index=idx,
                     override_set=override_set,

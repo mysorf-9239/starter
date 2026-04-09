@@ -50,6 +50,48 @@ def test_redaction_masks_wandb_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "secret-value" not in rendered
 
 
+def test_compose_loads_dotenv_when_os_env_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("STARTER_ENV_FILE", raising=False)
+    monkeypatch.delenv("STARTER_WORKSPACE_ROOT", raising=False)
+    monkeypatch.delenv("WANDB_PROJECT", raising=False)
+    (tmp_path / ".env").write_text("WANDB_PROJECT=dotenv-project\n", encoding="utf-8")
+
+    cfg = compose_typed_config(["tracking=wandb"], validate=False)
+
+    assert cfg.tracking["wandb"]["project"] == "dotenv-project"
+
+
+def test_os_env_overrides_dotenv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("STARTER_ENV_FILE", raising=False)
+    monkeypatch.delenv("STARTER_WORKSPACE_ROOT", raising=False)
+    monkeypatch.setenv("WANDB_PROJECT", "from-os")
+    (tmp_path / ".env").write_text("WANDB_PROJECT=from-dotenv\n", encoding="utf-8")
+
+    cfg = compose_typed_config(["tracking=wandb"], validate=False)
+
+    assert cfg.tracking["wandb"]["project"] == "from-os"
+
+
+def test_explicit_env_file_takes_precedence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    explicit = tmp_path / "custom.env"
+    explicit.write_text("WANDB_PROJECT=explicit-project\n", encoding="utf-8")
+    (tmp_path / ".env").write_text("WANDB_PROJECT=cwd-project\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("STARTER_ENV_FILE", str(explicit))
+    monkeypatch.delenv("STARTER_WORKSPACE_ROOT", raising=False)
+    monkeypatch.delenv("WANDB_PROJECT", raising=False)
+
+    cfg = compose_typed_config(["tracking=wandb"], validate=False)
+
+    assert cfg.tracking["wandb"]["project"] == "explicit-project"
+
+
 def test_cli_entrypoint_prints_composed_yaml() -> None:
     env = os.environ.copy()
     env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1])

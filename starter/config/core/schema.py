@@ -14,7 +14,7 @@ class AppSection:
 
     name: str = "starter"
     subsystem: str = "config"
-    version: str = "0.1.0"
+    version: str = "0.1.1"
 
 
 @dataclass

@@ -2,7 +2,9 @@
 
 ## Overview
 
-`starter.sweeps` standardizes hyperparameter search for ML and research workflows. It generates parameter combinations from a typed search space, executes trials through a `SweepRunner` backend, and aggregates results into a structured `SweepSummary`.
+`starter.sweeps` standardizes hyperparameter search for ML and research workflows. It generates parameter combinations
+from a typed search space, executes trials through a `SweepRunner` backend, and aggregates results into a structured
+`SweepSummary`.
 
 ## Responsibilities
 
@@ -43,14 +45,14 @@ Supported backends: `local`, `wandb`
 
 Supported strategies: `grid`, `random`
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `backend` | `str` | `"local"` | Execution backend |
-| `strategy` | `str` | `"grid"` | Override generation strategy |
-| `n_trials` | `int \| null` | `null` | Number of trials (required for `random`) |
-| `seed` | `int \| null` | `null` | Random seed for reproducibility |
-| `fail_fast` | `bool` | `false` | Stop on first trial failure |
-| `enabled` | `bool` | `true` | Enable/disable the subsystem |
+| Field       | Type          | Default   | Description                              |
+|-------------|---------------|-----------|------------------------------------------|
+| `backend`   | `str`         | `"local"` | Execution backend                        |
+| `strategy`  | `str`         | `"grid"`  | Override generation strategy             |
+| `n_trials`  | `int \| null` | `null`    | Number of trials (required for `random`) |
+| `seed`      | `int \| null` | `null`    | Random seed for reproducibility          |
+| `fail_fast` | `bool`        | `false`   | Stop on first trial failure              |
+| `enabled`   | `bool`        | `true`    | Enable/disable the subsystem             |
 
 ## Public API
 
@@ -86,11 +88,11 @@ space = SearchSpace(params=[
 
 ### Parameter types
 
-| Type | Fields | Description |
-|---|---|---|
-| `CategoricalParam` | `name`, `values` | Fixed list of discrete values |
-| `IntegerParam` | `name`, `low`, `high`, `step=1` | Integer range |
-| `FloatParam` | `name`, `low`, `high`, `log_scale=False`, `n_points=10` | Float range |
+| Type               | Fields                                                  | Description                   |
+|--------------------|---------------------------------------------------------|-------------------------------|
+| `CategoricalParam` | `name`, `values`                                        | Fixed list of discrete values |
+| `IntegerParam`     | `name`, `low`, `high`, `step=1`                         | Integer range                 |
+| `FloatParam`       | `name`, `low`, `high`, `log_scale=False`, `n_points=10` | Float range                   |
 
 ## Trial Function
 
@@ -111,6 +113,9 @@ def trial_fn(ctx, params):
     ctx.logger.info(f"trial loss={loss}")
     return {"loss": loss}
 ```
+
+Each local trial receives a freshly bootstrapped `RuntimeContext` and that context is always torn down after the trial
+completes or fails.
 
 ## Strategies
 
@@ -148,9 +153,11 @@ with bootstrap() as ctx:
     ])
     cfg = SweepsConfig(strategy="grid")
 
+
     def trial_fn(ctx, params):
         loss = train_model(lr=float(params["lr"]))
         return {"loss": loss}
+
 
     summary = run_sweep(space, trial_fn, ctx, cfg)
     best = summary.best_trial("loss", mode="min")
@@ -171,26 +178,26 @@ summary = runner.run(override_sets, trial_fn)
 
 ## `SweepSummary`
 
-| Member | Type | Description |
-|---|---|---|
-| `results` | `list[SweepResult]` | All trial results |
-| `n_success` | `int` (property) | Number of successful trials |
-| `n_failed` | `int` (property) | Number of failed trials |
-| `best_trial(metric, mode)` | `SweepResult` | Best trial by metric (`"min"` or `"max"`) |
-| `to_dataframe()` | `DataFrame \| list[dict]` | Returns `pd.DataFrame` if pandas is installed, else `list[dict]` |
-| `to_json()` | `str` | Serialize to JSON string |
-| `SweepSummary.from_json(s)` | `SweepSummary` | Deserialize from JSON string |
+| Member                      | Type                      | Description                                                      |
+|-----------------------------|---------------------------|------------------------------------------------------------------|
+| `results`                   | `list[SweepResult]`       | All trial results                                                |
+| `n_success`                 | `int` (property)          | Number of successful trials                                      |
+| `n_failed`                  | `int` (property)          | Number of failed trials                                          |
+| `best_trial(metric, mode)`  | `SweepResult`             | Best trial by metric (`"min"` or `"max"`)                        |
+| `to_dataframe()`            | `DataFrame \| list[dict]` | Returns `pd.DataFrame` if pandas is installed, else `list[dict]` |
+| `to_json()`                 | `str`                     | Serialize to JSON string                                         |
+| `SweepSummary.from_json(s)` | `SweepSummary`            | Deserialize from JSON string                                     |
 
 ## `SweepResult` fields
 
-| Field | Type | Description |
-|---|---|---|
-| `trial_index` | `int` | Zero-based trial index |
-| `override_set` | `list[str]` | Hydra override strings for this trial |
-| `status` | `str` | `"success"` or `"failed"` |
-| `metrics` | `dict[str, float]` | Metrics returned by `trial_fn` |
-| `error` | `str \| None` | Error message if `status == "failed"` |
-| `created_at` | `datetime` | UTC creation timestamp |
+| Field          | Type               | Description                           |
+|----------------|--------------------|---------------------------------------|
+| `trial_index`  | `int`              | Zero-based trial index                |
+| `override_set` | `list[str]`        | Hydra override strings for this trial |
+| `status`       | `str`              | `"success"` or `"failed"`             |
+| `metrics`      | `dict[str, float]` | Metrics returned by `trial_fn`        |
+| `error`        | `str \| None`      | Error message if `status == "failed"` |
+| `created_at`   | `datetime`         | UTC creation timestamp                |
 
 ## Backends
 
@@ -205,6 +212,8 @@ summary = runner.run(override_sets, trial_fn)
 - extra: `tracking-wandb`
 - delegates to `wandb.sweep()` and `wandb.agent()`
 - requires `search_space` to be passed to `build_sweep_runner()`
+- maps `strategy="grid"` to a wandb grid sweep
+- maps `strategy="random"` to a wandb random sweep and uses `n_trials` as the agent count
 
 ```bash
 pip install -e ".[tracking-wandb]"

@@ -1,3 +1,0 @@
-name: local
-platform: local
-workspace: ${paths.repo_root}

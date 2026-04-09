@@ -121,6 +121,17 @@ def test_validate_invalid_strategy_raises() -> None:
         validate_artifacts_config(cfg)
 
 
+def test_validate_disabled_backend_requires_enabled_false() -> None:
+    cfg = ArtifactsConfig(backend="disabled", enabled=True)
+    with pytest.raises(ValueError, match="enabled"):
+        validate_artifacts_config(cfg)
+
+
+def test_parse_typed_invalid_config_raises() -> None:
+    with pytest.raises(ValueError, match="backend"):
+        build_artifact_manager(ArtifactsConfig(backend="s3"), _make_paths_section(Path.cwd()))  # type: ignore[arg-type]
+
+
 # Feature: artifacts-subsystem, Property 15: validate_artifacts_config từ chối config không hợp lệ
 @given(
     st.text(min_size=1).filter(lambda s: s not in {"local", "disabled"}),

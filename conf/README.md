@@ -2,7 +2,9 @@
 
 ## Overview
 
-[`conf/`](./) is the Hydra configuration source for the `starter` library. Config groups are kept at the repository root so that defaults and environment profiles are visible at the top level and downstream bootstrap code has a single, predictable location to reference.
+[`conf/`](./) is the Hydra configuration source for the `starter` library. Config groups are kept at the repository root
+so that defaults and environment profiles are visible at the top level and downstream bootstrap code has a single,
+predictable location to reference.
 
 ## Layout
 
@@ -40,7 +42,7 @@ defaults:
 app:
   name: starter
   subsystem: config
-  version: 0.1.0
+  version: 0.1.1
 ```
 
 ## Group Reference
@@ -49,55 +51,55 @@ app:
 
 Environment selection profiles.
 
-| File | Use case |
-|---|---|
-| `local.yaml` | Local development |
-| `dev.yaml` | Shared development environment |
-| `ci.yaml` | Continuous integration |
+| File         | Use case                       |
+|--------------|--------------------------------|
+| `local.yaml` | Local development              |
+| `dev.yaml`   | Shared development environment |
+| `ci.yaml`    | Continuous integration         |
 
 ### `paths/`
 
 Shared filesystem path conventions resolved at runtime.
 
-| Key | Description |
-|---|---|
-| `repo_root` | Absolute path to repository root |
-| `config_root` | Absolute path to `conf/` |
-| `output_dir` | Default output directory |
+| Key             | Description                         |
+|-----------------|-------------------------------------|
+| `repo_root`     | Absolute path to repository root    |
+| `config_root`   | Absolute path to `conf/`            |
+| `output_dir`    | Default output directory            |
 | `artifacts_dir` | Default artifacts storage directory |
-| `cache_dir` | Local cache directory |
+| `cache_dir`     | Local cache directory               |
 
 ### `runtime/`
 
 Execution-mode flags and global settings.
 
-| Key | Default | Description |
-|---|---|---|
-| `debug` | `false` | Enable debug mode |
-| `seed` | `7` | Global random seed |
-| `strict_config` | `true` | Fail on unknown config keys |
-| `profile` | `"default"` | Execution profile name |
+| Key             | Default     | Description                 |
+|-----------------|-------------|-----------------------------|
+| `debug`         | `false`     | Enable debug mode           |
+| `seed`          | `7`         | Global random seed          |
+| `strict_config` | `true`      | Fail on unknown config keys |
+| `profile`       | `"default"` | Execution profile name      |
 
 ### `logging/`
 
 Logging configuration groups passed to `starter.logging`.
 
-| File | Backend | Dependencies |
-|---|---|---|
-| `disabled.yaml` | No-op | None |
-| `console.yaml` | stdlib stdout | None |
-| `file.yaml` | stdlib file | None |
-| `rich.yaml` | Rich | `pip install -e ".[logging-rich]"` |
-| `structlog.yaml` | structlog | `pip install -e ".[logging-structlog]"` |
+| File             | Backend       | Dependencies                            |
+|------------------|---------------|-----------------------------------------|
+| `disabled.yaml`  | No-op         | None                                    |
+| `console.yaml`   | stdlib stdout | None                                    |
+| `file.yaml`      | stdlib file   | None                                    |
+| `rich.yaml`      | Rich          | `pip install -e ".[logging-rich]"`      |
+| `structlog.yaml` | structlog     | `pip install -e ".[logging-structlog]"` |
 
 ### `tracking/`
 
 Tracking configuration groups passed to `starter.tracking`.
 
-| File | Backend | Dependencies |
-|---|---|---|
-| `disabled.yaml` | No-op | None |
-| `wandb.yaml` | Weights & Biases | `pip install -e ".[tracking-wandb]"` |
+| File            | Backend          | Dependencies                         |
+|-----------------|------------------|--------------------------------------|
+| `disabled.yaml` | No-op            | None                                 |
+| `wandb.yaml`    | Weights & Biases | `pip install -e ".[tracking-wandb]"` |
 
 Credentials are read from environment variables:
 
@@ -111,18 +113,18 @@ export WANDB_MODE=online
 
 Profiling configuration groups passed to `starter.profiling`.
 
-| File | Backend | Dependencies |
-|---|---|---|
-| `disabled.yaml` | No-op | None |
-| `basic.yaml` | stdlib | None |
-| `pandas.yaml` | pandas | `pip install -e ".[profiling-pandas]"` |
+| File            | Backend | Dependencies                           |
+|-----------------|---------|----------------------------------------|
+| `disabled.yaml` | No-op   | None                                   |
+| `basic.yaml`    | stdlib  | None                                   |
+| `pandas.yaml`   | pandas  | `pip install -e ".[profiling-pandas]"` |
 
 ### `artifacts/`
 
 Artifacts configuration groups passed to `starter.artifacts`.
 
-| File | Backend | Description |
-|---|---|---|
+| File           | Backend | Description              |
+|----------------|---------|--------------------------|
 | `default.yaml` | `local` | Local filesystem storage |
 
 Key fields: `backend`, `enabled`, `base_dir`, `versioning_strategy`
@@ -131,8 +133,8 @@ Key fields: `backend`, `enabled`, `base_dir`, `versioning_strategy`
 
 Sweeps configuration groups passed to `starter.sweeps`.
 
-| File | Backend | Description |
-|---|---|---|
+| File           | Backend | Description                |
+|----------------|---------|----------------------------|
 | `default.yaml` | `local` | Sequential local execution |
 
 Key fields: `backend`, `strategy`, `n_trials`, `seed`, `fail_fast`
@@ -143,19 +145,21 @@ Hydra runtime behavior: run directory convention, sweep directory convention, an
 
 ## Config Ownership Model
 
-`conf/` defines selection and defaults. Schema meaning belongs to the owning subsystem.
+`conf/` defines selection and defaults and is the source-of-truth config tree. Schema meaning belongs to the owning
+subsystem.
 
-| Config group | Owned by |
-|---|---|
-| `logging/` | [`starter.logging`](../starter/logging/README.md) |
-| `tracking/` | [`starter.tracking`](../starter/tracking/README.md) |
+| Config group | Owned by                                              |
+|--------------|-------------------------------------------------------|
+| `logging/`   | [`starter.logging`](../starter/logging/README.md)     |
+| `tracking/`  | [`starter.tracking`](../starter/tracking/README.md)   |
 | `profiling/` | [`starter.profiling`](../starter/profiling/README.md) |
 | `artifacts/` | [`starter.artifacts`](../starter/artifacts/README.md) |
-| `sweeps/` | [`starter.sweeps`](../starter/sweeps/README.md) |
+| `sweeps/`    | [`starter.sweeps`](../starter/sweeps/README.md)       |
 
 ## Rules
 
-- Secrets must not be committed to `conf/`. Use `oc.env` interpolation for credentials.
+- Secrets must not be committed to `conf/`. Use `oc.env` interpolation for credentials and let `starter.config` load
+  `.env` files into the environment.
 - New top-level groups should correspond to real, reusable subsystems.
 - Defaults must be explicit in `config.yaml`.
 - Config values must not contain business logic.

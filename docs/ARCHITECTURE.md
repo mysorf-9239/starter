@@ -2,18 +2,20 @@
 
 ## Overview
 
-`starter` is a reusable Python foundation for shared infrastructure subsystems that can be integrated into multiple ML and research projects. The architecture is organized into distinct layers with clear ownership boundaries, keeping subsystem cores decoupled so they can be reused independently of any single application shape.
+`starter` is a reusable Python foundation for shared infrastructure subsystems that can be integrated into multiple ML
+and research projects. The architecture is organized into distinct layers with clear ownership boundaries, keeping
+subsystem cores decoupled so they can be reused independently of any single application shape.
 
 ## Design Principles
 
-| Principle | Description |
-|---|---|
-| Single composition layer | Only `starter.config` composes the root Hydra config |
-| Subsystem ownership | Each subsystem owns its schema, validation, and factory |
-| Decoupled cores | Subsystems do not import from each other |
-| Optional providers | External SDK imports are confined to backend modules and optional extras |
-| Bootstrap wiring | Cross-subsystem integration occurs exclusively in `starter.runtime` |
-| Protocol interfaces | Subsystems expose Protocol types, not concrete backend classes |
+| Principle                | Description                                                              |
+|--------------------------|--------------------------------------------------------------------------|
+| Single composition layer | Only `starter.config` composes the root Hydra config                     |
+| Subsystem ownership      | Each subsystem owns its schema, validation, and factory                  |
+| Decoupled cores          | Subsystems do not import from each other                                 |
+| Optional providers       | External SDK imports are confined to backend modules and optional extras |
+| Bootstrap wiring         | Cross-subsystem integration occurs exclusively in `starter.runtime`      |
+| Protocol interfaces      | Subsystems expose Protocol types, not concrete backend classes           |
 
 ## Repository Structure
 
@@ -30,7 +32,7 @@ starter/
 │   ├── artifacts/        # Artifact management subsystem
 │   ├── runtime/          # Bootstrap orchestration layer
 │   ├── sweeps/           # Hyperparameter search subsystem
-│   └── cli.py            # `starter-config` CLI entrypoint
+│   └── cli.py            # `starter` CLI entrypoint
 ├── tests/
 ├── pyproject.toml
 └── README.md
@@ -45,6 +47,7 @@ Owned by [`starter/config/`](../starter/config/README.md).
 The only subsystem permitted to interact with Hydra composition directly.
 
 Responsibilities:
+
 - compose root Hydra config from `conf/` groups
 - expose typed `AppConfig` schema
 - validate shared invariants
@@ -52,15 +55,16 @@ Responsibilities:
 
 ### Layer 2 — Subsystems
 
-Each subsystem accepts only its own config section, passed from the bootstrap layer. No subsystem composes config or imports from another subsystem.
+Each subsystem accepts only its own config section, passed from the bootstrap layer. No subsystem composes config or
+imports from another subsystem.
 
-| Subsystem | Owns |
-|---|---|
-| `starter.logging` | `LoggingConfig`, `Logger` Protocol, 4 backends |
-| `starter.tracking` | `TrackingConfig`, `Tracker` Protocol, wandb backend |
+| Subsystem           | Owns                                                          |
+|---------------------|---------------------------------------------------------------|
+| `starter.logging`   | `LoggingConfig`, `Logger` Protocol, 4 backends                |
+| `starter.tracking`  | `TrackingConfig`, `Tracker` Protocol, wandb backend           |
 | `starter.profiling` | `ProfilingConfig`, `Profiler` Protocol, basic/pandas backends |
-| `starter.artifacts` | `ArtifactsConfig`, `ArtifactManager` Protocol, local backend |
-| `starter.sweeps` | `SweepsConfig`, `SweepRunner` Protocol, local/wandb backends |
+| `starter.artifacts` | `ArtifactsConfig`, `ArtifactManager` Protocol, local backend  |
+| `starter.sweeps`    | `SweepsConfig`, `SweepRunner` Protocol, local/wandb backends  |
 
 Each subsystem follows the same internal layout:
 
@@ -81,6 +85,7 @@ Owned by [`starter/runtime/`](../starter/runtime/README.md).
 The single integration point for all subsystems.
 
 Responsibilities:
+
 - call `starter.config.compose_typed_config()`
 - build all subsystem instances in the correct order
 - package them into an immutable `RuntimeContext`
@@ -98,7 +103,8 @@ downstream project
             └── starter.artifacts   (build_artifact_manager)
 ```
 
-`starter.sweeps` is used independently — it receives a `RuntimeContext` from the caller and does not participate in the bootstrap sequence.
+`starter.sweeps` is used independently — it receives a `RuntimeContext` from the caller and does not participate in the
+bootstrap sequence.
 
 Subsystem-to-subsystem hard dependencies are prohibited:
 
@@ -118,7 +124,8 @@ conf/                    ← defines selection and defaults
     sweeps/              ← owned by starter.sweeps
 ```
 
-`AppConfig` in `starter.config` holds lightweight references to each subsystem section as `dict[str, Any]`. Detailed schema meaning stays in the owning subsystem.
+`AppConfig` in `starter.config` holds lightweight references to each subsystem section as `dict[str, Any]`. Detailed
+schema meaning stays in the owning subsystem.
 
 ## Public API Strategy
 
@@ -138,12 +145,12 @@ Internal modules under `core/` and `backends/` are implementation details and ar
 
 ## Optional Dependencies
 
-| Extra | Library | Subsystem |
-|---|---|---|
-| `logging-rich` | `rich` | `starter.logging` |
-| `logging-structlog` | `structlog` | `starter.logging` |
-| `tracking-wandb` | `wandb` | `starter.tracking`, `starter.sweeps` |
-| `profiling-pandas` | `pandas` | `starter.profiling` |
+| Extra               | Library     | Subsystem                            |
+|---------------------|-------------|--------------------------------------|
+| `logging-rich`      | `rich`      | `starter.logging`                    |
+| `logging-structlog` | `structlog` | `starter.logging`                    |
+| `tracking-wandb`    | `wandb`     | `starter.tracking`, `starter.sweeps` |
+| `profiling-pandas`  | `pandas`    | `starter.profiling`                  |
 
 ## Stability Boundaries
 

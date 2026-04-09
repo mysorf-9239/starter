@@ -7,7 +7,38 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
-## [Unreleased]
+## [0.1.1] — 2026-04-09
+
+### Added
+
+- Built-in `.env` loading in `starter.config` before Hydra composition.
+- Runtime-generated `run_id` exposed on `RuntimeContext`.
+- Tests covering `.env` precedence, runtime `run_id`, sweeps teardown, and
+  WandB sweep strategy mapping.
+
+### Changed
+
+- Root `conf/` is now the source-of-truth config tree for the project.
+- Packaging now force-includes root `conf/` into the wheel at `starter/conf`.
+- `starter.artifacts` now aligns the default `run_id` versioning strategy with
+  runtime bootstrap behavior.
+- `starter.sweeps` local trials now always tear down their bootstrapped
+  runtime context.
+- `starter.sweeps` WandB backend now respects `grid` vs `random` strategy and
+  uses `n_trials` for random-agent execution.
+- Logging validation is now side-effect free; file path creation happens only
+  in backend builders.
+
+### Fixed
+
+- Validation for typed `ArtifactsConfig` inputs is now consistent with mapping
+  and `DictConfig` inputs.
+- Disabled artifacts config now rejects `enabled=true` when
+  `backend=\"disabled\"`.
+- Tracking dependency-missing tests no longer depend on the host environment's
+  `wandb` installation state.
+- Documentation now consistently references the `starter` CLI and the updated
+  runtime/config contract.
 
 ---
 
@@ -42,5 +73,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - GitHub Actions workflows for CI and automated release.
 - `CITATION.cff` for academic citation.
 
-[Unreleased]: https://github.com/mysorf-9239/starter/compare/v0.1.0...HEAD
+---
+
+## [Unreleased]
+---
+
+[0.1.1]: https://github.com/mysorf-9239/starter/releases/tag/v0.1.1
+
 [0.1.0]: https://github.com/mysorf-9239/starter/releases/tag/v0.1.0
+
+[Unreleased]: https://github.com/mysorf-9239/starter/compare/v0.1.1...HEAD

@@ -1,5 +1,0 @@
-backend: file
-enabled: true
-level: INFO
-format: "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
-path: ${paths.output_dir}/logs/starter.log

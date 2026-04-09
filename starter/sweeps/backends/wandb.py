@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from importlib import import_module
 from typing import Any
 
 from ..core.interfaces import TrialFn
-from ..core.schema import SearchSpace, SweepResult, SweepSummary
+from ..core.schema import SearchSpace, SweepResult, SweepsConfig, SweepSummary
 
 
 def _to_wandb_config(space: SearchSpace) -> dict[str, Any]:
@@ -43,16 +44,34 @@ class WandbRunner:
     Requires the ``tracking-wandb`` optional extra.
     """
 
-    def __init__(self, search_space: SearchSpace, project: str | None = None) -> None:
+    def __init__(
+        self,
+        search_space: SearchSpace,
+        config: SweepsConfig,
+        base_overrides: list[str] | None = None,
+        project: str | None = None,
+    ) -> None:
         """Initialise the runner.
 
         Args:
             search_space: Hyperparameter search space to sweep over.
+            config: Sweep configuration controlling backend semantics.
+            base_overrides: Hydra overrides applied to each bootstrapped trial context.
             project: wandb project name.  When ``None``, the active wandb
                 project is used.
         """
         self._space = search_space
+        self._config = config
+        self._base_overrides = list(base_overrides or [])
         self._project = project
+
+    def _build_sweep_config(self) -> dict[str, Any]:
+        """Build the wandb sweep configuration from starter semantics."""
+        method = "grid" if self._config.strategy == "grid" else "random"
+        return {
+            "method": method,
+            "parameters": _to_wandb_config(self._space),
+        }
 
     def run(
         self,
@@ -75,17 +94,14 @@ class WandbRunner:
             ImportError: If ``wandb`` is not installed.
         """
         try:
-            import wandb
+            wandb: Any = import_module("wandb")
         except ImportError as exc:
             raise ImportError(
                 "wandb is not installed. Install starter with the 'tracking-wandb' extra: "
                 "pip install 'starter[tracking-wandb]'"
             ) from exc
 
-        sweep_config = {
-            "method": "grid",
-            "parameters": _to_wandb_config(self._space),
-        }
+        sweep_config = self._build_sweep_config()
         sweep_id = wandb.sweep(sweep_config, project=self._project)
 
         results: list[SweepResult] = []
@@ -97,9 +113,9 @@ class WandbRunner:
             overrides = [f"{k}={v}" for k, v in run.config.items()]
             params = dict(run.config.items())
             try:
-                ctx = bootstrap()
-                metrics = trial_fn(ctx, params)
-                wandb.log(metrics)
+                with bootstrap(self._base_overrides) as ctx:
+                    metrics = trial_fn(ctx, params)
+                    wandb.log(metrics)
                 results.append(
                     SweepResult(
                         trial_index=len(results),
@@ -120,5 +136,6 @@ class WandbRunner:
             finally:
                 wandb.finish()
 
-        wandb.agent(sweep_id, function=_agent_fn)
+        count = self._config.n_trials if self._config.strategy == "random" else len(override_sets)
+        wandb.agent(sweep_id, function=_agent_fn, count=count)
         return SweepSummary(results=results)
