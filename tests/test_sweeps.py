@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from datetime import timezone
+from threading import Thread
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -25,6 +27,7 @@ from starter.sweeps.backends.local import LocalRunner
 from starter.sweeps.backends.wandb import WandbRunner
 from starter.sweeps.core.strategies import GridStrategy, RandomStrategy
 from starter.sweeps.core.validate import validate_sweeps_config
+from starter.tracking.backends.wandb import WandbTracker
 
 # ---------------------------------------------------------------------------
 # Hypothesis strategies
@@ -290,6 +293,68 @@ def test_wandb_runner_builds_random_config() -> None:
     assert runner._build_sweep_config()["method"] == "random"
 
 
+def test_wandb_tracker_initializes_only_once_under_concurrency() -> None:
+    from starter.tracking import build_tracker
+
+    init_calls = 0
+    logged_metrics: list[dict[str, float]] = []
+
+    class FakeRun:
+        def __init__(self) -> None:
+            self.config = MagicMock()
+
+        def log(self, payload: dict[str, float], step: int | None = None) -> None:
+            del step
+            logged_metrics.append(payload)
+
+        def finish(self) -> None:
+            return None
+
+        def log_artifact(self, artifact: object) -> None:
+            del artifact
+
+    class FakeWandb:
+        def init(self, **kwargs: object) -> FakeRun:
+            nonlocal init_calls
+            del kwargs
+            init_calls += 1
+            return FakeRun()
+
+        def Artifact(self, name: str, type: str) -> object:  # noqa: A002
+            del name, type
+            return object()
+
+    tracker = cast(
+        WandbTracker,
+        build_tracker(
+            {
+                "backend": "wandb",
+                "enabled": True,
+                "wandb": {
+                    "project": "starter",
+                    "mode": "offline",
+                    "tags": [],
+                    "entity": None,
+                    "api_key": None,
+                    "group": None,
+                    "job_type": None,
+                    "notes": None,
+                },
+            },
+        ),
+    )
+    tracker._import_wandb = lambda: FakeWandb()  # type: ignore[method-assign]
+
+    threads = [Thread(target=tracker.log_metrics, args=({"loss": 1.0},)) for _ in range(5)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert init_calls == 1
+    assert len(logged_metrics) == 5
+
+
 # Feature: sweeps-subsystem, Property 3: Grid strategy sinh đúng số lượng override sets
 @given(valid_search_space())
 @settings(max_examples=50)
@@ -410,6 +475,17 @@ def test_summary_n_success_n_failed() -> None:
     s = _make_summary(n_success=3, n_failed=2)
     assert s.n_success == 3
     assert s.n_failed == 2
+
+
+def test_summary_created_at_is_timezone_aware() -> None:
+    summary = _make_summary(n_success=1, n_failed=0)
+    assert summary.results[0].created_at.tzinfo == timezone.utc
+
+
+def test_summary_json_round_trip_preserves_timezone() -> None:
+    summary = _make_summary(n_success=1, n_failed=0)
+    restored = SweepSummary.from_json(summary.to_json())
+    assert restored.results[0].created_at.tzinfo == timezone.utc
 
 
 def test_summary_best_trial_min() -> None:

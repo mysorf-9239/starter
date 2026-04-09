@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from ..core.schema import ArtifactRecord, ArtifactType
@@ -32,7 +32,7 @@ class NullArtifactManager:
             path=path,
             artifact_type=artifact_type,
             size_bytes=0,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
     def load(

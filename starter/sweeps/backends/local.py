@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 from ..core.interfaces import TrialFn
@@ -122,7 +122,7 @@ class LocalRunner:
                     override_set=override_set,
                     status="success",
                     metrics=metrics,
-                    created_at=datetime.utcnow(),
+                    created_at=datetime.now(timezone.utc),
                 )
                 if self._tracker is not None:
                     try:
@@ -135,7 +135,7 @@ class LocalRunner:
                     override_set=override_set,
                     status="failed",
                     error=str(exc),
-                    created_at=datetime.utcnow(),
+                    created_at=datetime.now(timezone.utc),
                 )
                 if self._fail_fast:
                     results.append(result)

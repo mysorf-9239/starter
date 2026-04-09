@@ -16,6 +16,7 @@ from __future__ import annotations
 import re
 import shutil
 import tempfile
+from datetime import timezone
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -388,6 +389,7 @@ def test_save_file_copies_to_correct_path(tmp_path: Path) -> None:
     assert record.path.exists()
     assert record.path.read_bytes() == b"weights"
     assert record.size_bytes == len(b"weights")
+    assert record.created_at.tzinfo == timezone.utc
 
 
 def test_save_directory_copies_tree(tmp_path: Path) -> None:
@@ -405,6 +407,46 @@ def test_save_nonexistent_source_raises(tmp_path: Path) -> None:
     mgr = LocalBackend(str(tmp_path / "arts"), versioning_strategy="manual")
     with pytest.raises(ArtifactNotFoundError):
         mgr.save(tmp_path / "ghost.pt", "model", ArtifactType.CHECKPOINT, version="v1")
+
+
+def test_save_file_is_atomic_on_copy_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    src = tmp_path / "model.pt"
+    src.write_bytes(b"weights")
+    mgr = LocalBackend(str(tmp_path / "arts"), versioning_strategy="manual")
+
+    def failing_copy2(source: Path, dest: Path) -> Path:
+        Path(dest).write_bytes(Path(source).read_bytes())
+        raise RuntimeError("copy interrupted")
+
+    monkeypatch.setattr("starter.artifacts.backends.local.shutil.copy2", failing_copy2)
+
+    with pytest.raises(RuntimeError, match="copy interrupted"):
+        mgr.save(src, "model", ArtifactType.CHECKPOINT, version="v1")
+
+    assert not (tmp_path / "arts" / "checkpoint" / "model" / "v1").exists()
+
+
+def test_save_directory_is_atomic_on_copy_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    src_dir = tmp_path / "run_dir"
+    src_dir.mkdir()
+    (src_dir / "a.txt").write_text("hello")
+    mgr = LocalBackend(str(tmp_path / "arts"), versioning_strategy="manual")
+
+    def failing_copytree(source: Path, dest: Path) -> Path:
+        Path(dest).mkdir(parents=True, exist_ok=True)
+        (Path(dest) / "a.txt").write_text("hello")
+        raise RuntimeError("tree interrupted")
+
+    monkeypatch.setattr("starter.artifacts.backends.local.shutil.copytree", failing_copytree)
+
+    with pytest.raises(RuntimeError, match="tree interrupted"):
+        mgr.save(src_dir, "run", ArtifactType.OUTPUT, version="v1")
+
+    assert not (tmp_path / "arts" / "output" / "run" / "v1").exists()
 
 
 # Feature: artifacts-subsystem, Property 1: Save tạo đúng cấu trúc đường dẫn

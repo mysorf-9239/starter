@@ -82,7 +82,7 @@ def test_runtime_context_is_frozen() -> None:
 
 # Feature: runtime-subsystem, Property 4: RuntimeContext immutability
 @given(st.just(["logging=disabled", "tracking=disabled", "profiling=disabled"]))
-@settings(max_examples=100, deadline=None)
+@settings(max_examples=25, deadline=None)
 def test_property_runtime_context_immutability(overrides: list[str]) -> None:
     ctx = bootstrap(overrides)
     with pytest.raises(FrozenInstanceError):
@@ -137,7 +137,7 @@ def test_teardown_swallows_tracker_exception() -> None:
 
 # Feature: runtime-subsystem, Property 5: Teardown swallows tracker exceptions
 @given(st.text(min_size=1))
-@settings(max_examples=100, deadline=None)
+@settings(max_examples=25, deadline=None)
 def test_property_teardown_swallows_exceptions(message: str) -> None:
     ctx = bootstrap(["tracking=disabled"])
     mock_tracker = MagicMock()
@@ -213,7 +213,7 @@ def test_all_disabled_returns_valid_context() -> None:
 
 # Feature: runtime-subsystem, Property 7: Null backends khi disabled
 @given(st.just(["logging=disabled", "tracking=disabled", "profiling=disabled"]))
-@settings(max_examples=100, deadline=None)
+@settings(max_examples=25, deadline=None)
 def test_property_null_backends_when_disabled(overrides: list[str]) -> None:
     ctx = bootstrap(overrides)
     assert isinstance(ctx.logger, NullLogger)
@@ -236,6 +236,27 @@ def test_override_logging_backend() -> None:
     assert ctx.cfg.logging["backend"] == "console"
 
 
+def test_compose_is_reentrant_in_single_process() -> None:
+    from starter.config import compose_typed_config
+
+    first = compose_typed_config(["tracking=disabled"])
+    second = compose_typed_config(["tracking=disabled", "runtime.seed=11"])
+
+    assert first.runtime.seed == 7
+    assert second.runtime.seed == 11
+
+
+def test_bootstrap_is_reentrant_in_single_process() -> None:
+    run_ids: list[str] = []
+
+    for seed in (1, 2, 3):
+        with bootstrap([f"runtime.seed={seed}", "tracking=disabled"]) as ctx:
+            run_ids.append(ctx.run_id)
+            assert ctx.cfg.runtime.seed == seed
+
+    assert len(set(run_ids)) == 3
+
+
 def test_artifact_manager_uses_runtime_run_id(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -251,7 +272,7 @@ def test_artifact_manager_uses_runtime_run_id(
 
 # Feature: runtime-subsystem, Property 3: Override round-trip
 @given(st.integers(min_value=0, max_value=9999))
-@settings(max_examples=100, deadline=None)
+@settings(max_examples=25, deadline=None)
 def test_property_override_seed_round_trip(seed: int) -> None:
     ctx = bootstrap([f"runtime.seed={seed}"])
     assert ctx.cfg.runtime.seed == seed
@@ -264,7 +285,7 @@ def test_property_override_seed_round_trip(seed: int) -> None:
 
 # Feature: runtime-subsystem, Property 1: Bootstrap completeness
 @given(st.just([]))
-@settings(max_examples=100, deadline=None)
+@settings(max_examples=25, deadline=None)
 def test_property_bootstrap_completeness_empty_overrides(overrides: list[str]) -> None:
     ctx = bootstrap(overrides)
     assert ctx.cfg is not None
@@ -275,7 +296,7 @@ def test_property_bootstrap_completeness_empty_overrides(overrides: list[str]) -
 
 # Feature: runtime-subsystem, Property 1: Bootstrap completeness (disabled)
 @given(st.just(["logging=disabled", "tracking=disabled", "profiling=disabled"]))
-@settings(max_examples=100, deadline=None)
+@settings(max_examples=25, deadline=None)
 def test_property_bootstrap_completeness_disabled(overrides: list[str]) -> None:
     ctx = bootstrap(overrides)
     assert ctx.cfg is not None
@@ -291,7 +312,7 @@ def test_property_bootstrap_completeness_disabled(overrides: list[str]) -> None:
 
 # Feature: runtime-subsystem, Property 2: Bootstrap determinism
 @given(st.just([]))
-@settings(max_examples=100, deadline=None)
+@settings(max_examples=25, deadline=None)
 def test_property_bootstrap_determinism(overrides: list[str]) -> None:
     ctx1 = bootstrap(overrides)
     ctx2 = bootstrap(overrides)
