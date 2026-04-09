@@ -7,6 +7,33 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.1.2] — 2026-04-09
+
+### Changed
+
+- `starter.config` composition is now safe to call repeatedly in a single
+  process by resetting Hydra global state before re-initialization.
+- `starter.tracking.WandbTracker` now serializes run lifecycle and logging
+  operations with an internal lock for safer concurrent use.
+- `starter.artifacts.LocalBackend.save()` now stages writes into a temporary
+  path and only publishes the final artifact location after a successful copy.
+- Runtime bootstrap now emits a debug log when construction starts, including
+  the generated `run_id`.
+
+### Fixed
+
+- Replaced remaining deprecated `datetime.utcnow()` usage with UTC-aware
+  timestamps across artifacts and sweeps.
+- Artifact listing and saved metadata now use timezone-aware UTC datetimes
+  consistently.
+- Added regression coverage for Hydra reentrancy, atomic artifact writes,
+  timezone-aware timestamp round-trips, and concurrent WandB tracker
+  initialization.
+- Reduced the heaviest runtime/Hydra property-test load to keep the suite fast
+  while preserving regression coverage.
+
+---
+
 ## [0.1.1] — 2026-04-09
 
 ### Added
@@ -78,8 +105,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 ---
 
+[0.1.2]: https://github.com/mysorf-9239/starter/releases/tag/v0.1.2
+
 [0.1.1]: https://github.com/mysorf-9239/starter/releases/tag/v0.1.1
 
 [0.1.0]: https://github.com/mysorf-9239/starter/releases/tag/v0.1.0
 
-[Unreleased]: https://github.com/mysorf-9239/starter/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/mysorf-9239/starter/compare/v0.1.2...HEAD

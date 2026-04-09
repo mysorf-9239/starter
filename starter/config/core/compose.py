@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import cast
 
 from hydra import compose, initialize_config_dir
+from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig, OmegaConf
 
 from .registry import register_config_store
@@ -140,6 +141,9 @@ def compose_config(
     load_env_files()
     register_resolvers()
     register_config_store()
+    global_hydra = GlobalHydra.instance()
+    if global_hydra.is_initialized():
+        global_hydra.clear()
     with initialize_config_dir(version_base=None, config_dir=_config_dir()):
         cfg = compose(config_name=config_name, overrides=list(overrides or []))
     return cfg

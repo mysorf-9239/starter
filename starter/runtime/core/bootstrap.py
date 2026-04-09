@@ -47,6 +47,7 @@ def bootstrap(overrides: Sequence[str] | None = None) -> RuntimeContext:
     cfg = compose_typed_config(list(overrides) if overrides is not None else [])
     run_id = _generate_run_id()
     logger = build_logger(cfg.logging, name=cfg.app.name)
+    logger.debug(f"bootstrap start: app={cfg.app.name} run_id={run_id}")
     tracker = build_tracker(cfg.tracking)
     profiler = build_profiler(cfg.profiling)
     artifact_manager = build_artifact_manager(

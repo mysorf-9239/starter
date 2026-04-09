@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import logging
 import shutil
+from contextlib import suppress
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
+from uuid import uuid4
 
 from ..core.exceptions import ArtifactNotFoundError
 from ..core.schema import ArtifactRecord, ArtifactType, VersioningStrategy
@@ -27,6 +29,15 @@ def _dir_size(path: Path) -> int:
         Total byte count of all regular files beneath *path*.
     """
     return sum(f.stat().st_size for f in path.rglob("*") if f.is_file())
+
+
+def _cleanup_path(path: Path) -> None:
+    """Remove a file or directory best-effort."""
+    if path.is_dir():
+        shutil.rmtree(path, ignore_errors=True)
+        return
+    with suppress(FileNotFoundError):
+        path.unlink()
 
 
 class LocalBackend:
@@ -156,25 +167,36 @@ class LocalBackend:
 
         resolved_version = self._resolve_version(version)
         dest_dir = self.resolve_path(name, artifact_type, resolved_version)
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        dest = dest_dir / src.name
+        version_root = dest_dir.parent
+        version_root.mkdir(parents=True, exist_ok=True)
 
-        if src.is_dir():
-            if dest.exists():
-                shutil.rmtree(dest)
-            shutil.copytree(src, dest)
-            size = _dir_size(dest)
-        else:
-            shutil.copy2(src, dest)
-            size = dest.stat().st_size
+        staged_dir = version_root / f".tmp-{resolved_version}-{uuid4().hex}"
+        staged_dest = staged_dir / src.name
+        final_dest = dest_dir / src.name
+
+        try:
+            staged_dir.mkdir(parents=True, exist_ok=False)
+            if src.is_dir():
+                shutil.copytree(src, staged_dest)
+                size = _dir_size(staged_dest)
+            else:
+                shutil.copy2(src, staged_dest)
+                size = staged_dest.stat().st_size
+
+            if dest_dir.exists():
+                shutil.rmtree(dest_dir)
+            staged_dir.replace(dest_dir)
+        except Exception:
+            _cleanup_path(staged_dir)
+            raise
 
         record = ArtifactRecord(
             name=name,
             version=resolved_version,
-            path=dest,
+            path=final_dest,
             artifact_type=artifact_type,
             size_bytes=size,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         if self._tracker is not None:
@@ -286,9 +308,7 @@ class LocalBackend:
                             path=artifact_path,
                             artifact_type=at,
                             size_bytes=size,
-                            created_at=datetime.fromtimestamp(
-                                stat.st_mtime, tz=timezone.utc
-                            ).replace(tzinfo=None),
+                            created_at=datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc),
                         )
                     )
 

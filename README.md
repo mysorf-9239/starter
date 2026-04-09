@@ -30,7 +30,7 @@ pip install git+https://github.com/mysorf-9239/starter.git
 Pin to a specific release:
 
 ```bash
-pip install git+https://github.com/mysorf-9239/starter.git@v0.1.1
+pip install git+https://github.com/mysorf-9239/starter.git@v0.1.2
 ```
 
 ### With optional extras
@@ -51,12 +51,12 @@ pip install "starter[all] @ git+https://github.com/mysorf-9239/starter.git"
 ```toml
 [project]
 dependencies = [
-    "starter @ git+https://github.com/mysorf-9239/starter.git@v0.1.1",
+    "starter @ git+https://github.com/mysorf-9239/starter.git@v0.1.2",
 ]
 
 [project.optional-dependencies]
 ml = [
-    "starter[tracking-wandb,logging-rich] @ git+https://github.com/mysorf-9239/starter.git@v0.1.1",
+    "starter[tracking-wandb,logging-rich] @ git+https://github.com/mysorf-9239/starter.git@v0.1.2",
 ]
 ```
 
@@ -211,7 +211,7 @@ or via the [`CITATION.cff`](CITATION.cff) file.
     author = {Nguyen, Duc Danh},
     title = {Starter: Reusable Python Infrastructure Subsystems},
     year = {2026},
-    version = {0.1.1},
+    version = {0.1.2},
     url = {https://github.com/mysorf-9239/starter},
     license = {MIT}
 }

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 # ---------------------------------------------------------------------------
@@ -170,7 +170,7 @@ class SweepResult:
     status: str  # "success" | "failed"
     metrics: dict[str, float] = field(default_factory=dict)
     error: str | None = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 @dataclass
