@@ -3,8 +3,16 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime, timezone
+from uuid import uuid4
 
 from .schema import RuntimeContext
+
+
+def _generate_run_id() -> str:
+    """Return a filesystem-safe runtime identifier."""
+    timestamp = datetime.now(tz=timezone.utc).strftime("%Y%m%d_%H%M%S")
+    return f"run_{timestamp}_{uuid4().hex[:8]}"
 
 
 def bootstrap(overrides: Sequence[str] | None = None) -> RuntimeContext:
@@ -37,13 +45,20 @@ def bootstrap(overrides: Sequence[str] | None = None) -> RuntimeContext:
     from starter.tracking import build_tracker
 
     cfg = compose_typed_config(list(overrides) if overrides is not None else [])
+    run_id = _generate_run_id()
     logger = build_logger(cfg.logging, name=cfg.app.name)
     tracker = build_tracker(cfg.tracking)
     profiler = build_profiler(cfg.profiling)
-    artifact_manager = build_artifact_manager(cfg.artifacts, cfg.paths, tracker=tracker)
+    artifact_manager = build_artifact_manager(
+        cfg.artifacts,
+        cfg.paths,
+        tracker=tracker,
+        run_id=run_id,
+    )
 
     return RuntimeContext(
         cfg=cfg,
+        run_id=run_id,
         logger=logger,
         tracker=tracker,
         profiler=profiler,

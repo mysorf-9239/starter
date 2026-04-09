@@ -3,26 +3,28 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+
+from starter.artifacts.core.interfaces import ArtifactManager
+from starter.config.core.schema import AppConfig
+from starter.logging.core.interfaces import Logger
+from starter.profiling.core.interfaces import Profiler
+from starter.tracking.core.interfaces import Tracker
 
 
 @dataclass(frozen=True)
 class RuntimeContext:
     """Immutable container holding all subsystem instances produced by bootstrap.
 
-    All fields are typed as :class:`Any` to avoid importing concrete backend
-    classes at module level; the actual types conform to the Protocol interfaces
-    defined in each subsystem.
-
     Supports the context manager protocol: ``__exit__`` calls
     :func:`~starter.runtime.teardown` automatically.
     """
 
-    cfg: Any
-    logger: Any
-    tracker: Any
-    profiler: Any
-    artifact_manager: Any
+    cfg: AppConfig
+    run_id: str
+    logger: Logger
+    tracker: Tracker
+    profiler: Profiler
+    artifact_manager: ArtifactManager
 
     def __enter__(self) -> RuntimeContext:
         return self

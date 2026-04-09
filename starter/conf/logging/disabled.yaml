@@ -1,4 +1,0 @@
-backend: disabled
-enabled: false
-level: INFO
-format: "%(asctime)s | %(levelname)s | %(name)s | %(message)s"

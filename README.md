@@ -1,6 +1,7 @@
 # Starter
 
-`starter` is a reusable Python foundation providing shared infrastructure subsystems for ML and research projects. Each subsystem is independently usable and follows a consistent internal convention.
+`starter` is a reusable Python foundation providing shared infrastructure subsystems for ML and research projects. Each
+subsystem is independently usable and follows a consistent internal convention.
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -8,15 +9,15 @@
 
 ## Subsystems
 
-| Subsystem | Status | Description |
-|---|---|---|
-| [`config`](starter/config/README.md) | Stable | Hydra/OmegaConf composition, typed schema, validation |
-| [`logging`](starter/logging/README.md) | Stable | Logger factory with 4 backends |
-| [`tracking`](starter/tracking/README.md) | Stable | Experiment tracker with Weights & Biases backend |
-| [`profiling`](starter/profiling/README.md) | Stable | Lightweight tabular data profiling |
-| [`runtime`](starter/runtime/README.md) | Stable | Bootstrap orchestration, `RuntimeContext` |
-| [`artifacts`](starter/artifacts/README.md) | Stable | Artifact save/load/version management |
-| [`sweeps`](starter/sweeps/README.md) | Stable | Hyperparameter search (grid, random, wandb) |
+| Subsystem                                  | Status | Description                                           |
+|--------------------------------------------|--------|-------------------------------------------------------|
+| [`config`](starter/config/README.md)       | Stable | Hydra/OmegaConf composition, typed schema, validation |
+| [`logging`](starter/logging/README.md)     | Stable | Logger factory with 4 backends                        |
+| [`tracking`](starter/tracking/README.md)   | Stable | Experiment tracker with Weights & Biases backend      |
+| [`profiling`](starter/profiling/README.md) | Stable | Lightweight tabular data profiling                    |
+| [`runtime`](starter/runtime/README.md)     | Stable | Bootstrap orchestration, `RuntimeContext`             |
+| [`artifacts`](starter/artifacts/README.md) | Stable | Artifact save/load/version management                 |
+| [`sweeps`](starter/sweeps/README.md)       | Stable | Hyperparameter search (grid, random, wandb)           |
 
 ## Installation
 
@@ -29,7 +30,7 @@ pip install git+https://github.com/mysorf-9239/starter.git
 Pin to a specific release:
 
 ```bash
-pip install git+https://github.com/mysorf-9239/starter.git@v0.1.0
+pip install git+https://github.com/mysorf-9239/starter.git@v0.1.1
 ```
 
 ### With optional extras
@@ -50,12 +51,12 @@ pip install "starter[all] @ git+https://github.com/mysorf-9239/starter.git"
 ```toml
 [project]
 dependencies = [
-    "starter @ git+https://github.com/mysorf-9239/starter.git@v0.1.0",
+    "starter @ git+https://github.com/mysorf-9239/starter.git@v0.1.1",
 ]
 
 [project.optional-dependencies]
 ml = [
-    "starter[tracking-wandb,logging-rich] @ git+https://github.com/mysorf-9239/starter.git@v0.1.0",
+    "starter[tracking-wandb,logging-rich] @ git+https://github.com/mysorf-9239/starter.git@v0.1.1",
 ]
 ```
 
@@ -76,6 +77,7 @@ from starter.runtime import bootstrap
 
 with bootstrap(["logging=rich", "tracking=wandb"]) as ctx:
     ctx.logger.info("experiment started")
+    ctx.logger.info(f"run_id={ctx.run_id}")
     ctx.tracker.start_run(run_name="baseline")
     ctx.tracker.log_metrics({"loss": 0.42}, step=1)
 ```
@@ -91,9 +93,11 @@ with bootstrap() as ctx:
         CategoricalParam(name="lr", values=[0.001, 0.01, 0.1]),
     ])
 
+
     def trial_fn(ctx, params):
         loss = train_model(lr=float(params["lr"]))
         return {"loss": loss}
+
 
     summary = run_sweep(space, trial_fn, ctx, SweepsConfig(strategy="grid"))
     best = summary.best_trial("loss", mode="min")
@@ -116,7 +120,7 @@ starter runtime=debug
 
 ```text
 starter/
-├── conf/                # Root Hydra config groups
+├── conf/                # Source-of-truth Hydra config groups
 │   ├── config.yaml      # Primary defaults list
 │   ├── env/             # Environment profiles (local, dev, ci)
 │   ├── paths/           # Shared path conventions
@@ -135,7 +139,7 @@ starter/
 │   ├── runtime/         # Bootstrap orchestration
 │   ├── artifacts/       # Artifact management
 │   ├── sweeps/          # Hyperparameter search
-│   └── cli.py           # `starter-config` CLI entrypoint
+│   └── cli.py           # `starter` CLI entrypoint
 ├── tests/               # Test suite (pytest + hypothesis)
 ├── docs/                # Repository-level design documents
 ├── pyproject.toml       # Packaging and tool configuration
@@ -160,16 +164,27 @@ subsystem/
 
 ## Optional Extras
 
-| Extra | Installs | Enables |
-|---|---|---|
-| `logging-rich` | `rich` | Rich terminal output |
-| `logging-structlog` | `structlog` | Structured/JSON logging |
-| `tracking-wandb` | `wandb` | Weights & Biases experiment tracking |
-| `profiling-pandas` | `pandas` | DataFrame-based profiling |
+| Extra               | Installs    | Enables                              |
+|---------------------|-------------|--------------------------------------|
+| `logging-rich`      | `rich`      | Rich terminal output                 |
+| `logging-structlog` | `structlog` | Structured/JSON logging              |
+| `tracking-wandb`    | `wandb`     | Weights & Biases experiment tracking |
+| `profiling-pandas`  | `pandas`    | DataFrame-based profiling            |
 
 ```bash
 pip install -e ".[logging-rich,tracking-wandb]"
 ```
+
+## Environment Variables
+
+`starter.config` loads environment values before Hydra composition using this precedence:
+
+1. existing OS environment variables
+2. file from `STARTER_ENV_FILE`
+3. `.env` under `STARTER_WORKSPACE_ROOT`
+4. `.env` in the current working directory
+
+Config files should continue to use `oc.env` interpolation; `.env` is only a convenient way to populate `os.environ`.
 
 ## Development
 
@@ -193,12 +208,12 @@ or via the [`CITATION.cff`](CITATION.cff) file.
 
 ```bibtex
 @software{starter2026,
-  author  = {Nguyen, Duc Danh},
-  title   = {Starter: Reusable Python Infrastructure Subsystems},
-  year    = {2026},
-  version = {0.1.0},
-  url     = {https://github.com/mysorf-9239/starter},
-  license = {MIT}
+    author = {Nguyen, Duc Danh},
+    title = {Starter: Reusable Python Infrastructure Subsystems},
+    year = {2026},
+    version = {0.1.1},
+    url = {https://github.com/mysorf-9239/starter},
+    license = {MIT}
 }
 ```
 

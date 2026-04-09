@@ -32,8 +32,8 @@ def parse_artifacts_config(
         ValueError: If the config fails validation.
     """
     if isinstance(data, ArtifactsConfig):
-        return data
-    if isinstance(data, DictConfig):
+        cfg = data
+    elif isinstance(data, DictConfig):
         cfg = cast(
             ArtifactsConfig,
             OmegaConf.to_object(OmegaConf.merge(OmegaConf.structured(ArtifactsConfig), data)),

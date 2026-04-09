@@ -1,9 +1,0 @@
-backend: rich
-enabled: true
-level: INFO
-format: "%(message)s"
-path: null
-json: false
-context: {}
-rich_tracebacks: true
-show_path: true

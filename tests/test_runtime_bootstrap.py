@@ -16,12 +16,14 @@ Property-based tests use hypothesis with max_examples=100.
 from __future__ import annotations
 
 from dataclasses import FrozenInstanceError
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from starter.artifacts import ArtifactType
 from starter.logging import NullLogger
 from starter.profiling import NullProfiler
 from starter.runtime import RuntimeContext, bootstrap, teardown
@@ -49,6 +51,7 @@ def test_bootstrap_default_returns_runtime_context() -> None:
     ctx = bootstrap()
 
     assert ctx.cfg is not None
+    assert ctx.run_id.startswith("run_")
     assert ctx.logger is not None
     assert ctx.tracker is not None
     assert ctx.profiler is not None
@@ -65,16 +68,16 @@ def test_runtime_context_is_frozen() -> None:
     ctx = bootstrap()
 
     with pytest.raises(FrozenInstanceError):
-        ctx.cfg = None  # type: ignore[misc]
+        ctx.cfg = None  # type: ignore[assignment,misc]
 
     with pytest.raises(FrozenInstanceError):
-        ctx.logger = None  # type: ignore[misc]
+        ctx.logger = None  # type: ignore[assignment,misc]
 
     with pytest.raises(FrozenInstanceError):
-        ctx.tracker = None  # type: ignore[misc]
+        ctx.tracker = None  # type: ignore[assignment,misc]
 
     with pytest.raises(FrozenInstanceError):
-        ctx.profiler = None  # type: ignore[misc]
+        ctx.profiler = None  # type: ignore[assignment,misc]
 
 
 # Feature: runtime-subsystem, Property 4: RuntimeContext immutability
@@ -83,13 +86,13 @@ def test_runtime_context_is_frozen() -> None:
 def test_property_runtime_context_immutability(overrides: list[str]) -> None:
     ctx = bootstrap(overrides)
     with pytest.raises(FrozenInstanceError):
-        ctx.cfg = None  # type: ignore[misc]
+        ctx.cfg = None  # type: ignore[assignment,misc]
     with pytest.raises(FrozenInstanceError):
-        ctx.logger = None  # type: ignore[misc]
+        ctx.logger = None  # type: ignore[assignment,misc]
     with pytest.raises(FrozenInstanceError):
-        ctx.tracker = None  # type: ignore[misc]
+        ctx.tracker = None  # type: ignore[assignment,misc]
     with pytest.raises(FrozenInstanceError):
-        ctx.profiler = None  # type: ignore[misc]
+        ctx.profiler = None  # type: ignore[assignment,misc]
 
 
 # ---------------------------------------------------------------------------
@@ -104,6 +107,7 @@ def test_teardown_calls_tracker_finish() -> None:
     # Build a new context with the mock tracker (frozen, so use object.__setattr__)
     ctx2 = RuntimeContext(
         cfg=ctx.cfg,
+        run_id=ctx.run_id,
         logger=ctx.logger,
         tracker=mock_tracker,
         profiler=ctx.profiler,
@@ -120,6 +124,7 @@ def test_teardown_swallows_tracker_exception() -> None:
     mock_tracker.finish.side_effect = RuntimeError("tracker exploded")
     ctx2 = RuntimeContext(
         cfg=ctx.cfg,
+        run_id=ctx.run_id,
         logger=ctx.logger,
         tracker=mock_tracker,
         profiler=ctx.profiler,
@@ -139,6 +144,7 @@ def test_property_teardown_swallows_exceptions(message: str) -> None:
     mock_tracker.finish.side_effect = Exception(message)
     ctx2 = RuntimeContext(
         cfg=ctx.cfg,
+        run_id=ctx.run_id,
         logger=ctx.logger,
         tracker=mock_tracker,
         profiler=ctx.profiler,
@@ -166,6 +172,7 @@ def test_context_manager_swallows_tracker_exception_on_exit() -> None:
     mock_tracker.finish.side_effect = RuntimeError("boom")
     ctx = RuntimeContext(
         cfg=ctx_base.cfg,
+        run_id=ctx_base.run_id,
         logger=ctx_base.logger,
         tracker=mock_tracker,
         profiler=ctx_base.profiler,
@@ -227,6 +234,19 @@ def test_override_runtime_seed() -> None:
 def test_override_logging_backend() -> None:
     ctx = bootstrap(["logging=console"])
     assert ctx.cfg.logging["backend"] == "console"
+
+
+def test_artifact_manager_uses_runtime_run_id(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    source = tmp_path / "model.pt"
+    source.write_bytes(b"weights")
+
+    with bootstrap(["logging=disabled", "tracking=disabled"]) as ctx:
+        record = ctx.artifact_manager.save(source, "model", artifact_type=ArtifactType.CHECKPOINT)
+
+    assert record.version == ctx.run_id
 
 
 # Feature: runtime-subsystem, Property 3: Override round-trip

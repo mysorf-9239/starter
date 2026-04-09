@@ -1,3 +1,0 @@
-name: ci
-platform: ci
-workspace: ${paths.repo_root}

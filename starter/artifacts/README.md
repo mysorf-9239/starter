@@ -2,7 +2,8 @@
 
 ## Overview
 
-`starter.artifacts` provides a structured abstraction for saving, loading, listing, deleting, and resolving paths for ML and research workflow artifacts — including model checkpoints, datasets, output files, and result directories.
+`starter.artifacts` provides a structured abstraction for saving, loading, listing, deleting, and resolving paths for ML
+and research workflow artifacts — including model checkpoints, datasets, output files, and result directories.
 
 ## Responsibilities
 
@@ -44,12 +45,12 @@ Supported backends: `local`, `disabled`
 
 Supported versioning strategies: `run_id`, `epoch`, `timestamp`, `manual`
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `backend` | `str` | `"local"` | Storage backend |
-| `enabled` | `bool` | `true` | Enable/disable the subsystem |
-| `base_dir` | `str \| null` | `null` | Override default artifacts directory |
-| `versioning_strategy` | `str` | `"run_id"` | Auto-version generation strategy |
+| Field                 | Type          | Default    | Description                          |
+|-----------------------|---------------|------------|--------------------------------------|
+| `backend`             | `str`         | `"local"`  | Storage backend                      |
+| `enabled`             | `bool`        | `true`     | Enable/disable the subsystem         |
+| `base_dir`            | `str \| null` | `null`     | Override default artifacts directory |
+| `versioning_strategy` | `str`         | `"run_id"` | Auto-version generation strategy     |
 
 ## Public API
 
@@ -69,33 +70,33 @@ from starter.artifacts import (
 
 ### `ArtifactManager` Protocol
 
-| Method | Signature | Description |
-|---|---|---|
-| `save` | `(source, name, artifact_type, version=None) -> ArtifactRecord` | Copy file/dir to structured path, return `ArtifactRecord` |
-| `load` | `(name, artifact_type, version=None) -> Path` | Return `Path` to saved artifact (latest if version omitted) |
-| `resolve_path` | `(name, artifact_type, version) -> Path` | Return expected path without creating anything |
-| `list_artifacts` | `(artifact_type=None, name=None) -> list[ArtifactRecord]` | List saved artifacts with optional filters |
-| `delete` | `(name, artifact_type, version) -> None` | Remove artifact from storage |
+| Method           | Signature                                                       | Description                                                 |
+|------------------|-----------------------------------------------------------------|-------------------------------------------------------------|
+| `save`           | `(source, name, artifact_type, version=None) -> ArtifactRecord` | Copy file/dir to structured path, return `ArtifactRecord`   |
+| `load`           | `(name, artifact_type, version=None) -> Path`                   | Return `Path` to saved artifact (latest if version omitted) |
+| `resolve_path`   | `(name, artifact_type, version) -> Path`                        | Return expected path without creating anything              |
+| `list_artifacts` | `(artifact_type=None, name=None) -> list[ArtifactRecord]`       | List saved artifacts with optional filters                  |
+| `delete`         | `(name, artifact_type, version) -> None`                        | Remove artifact from storage                                |
 
 ### `ArtifactRecord` fields
 
-| Field | Type | Description |
-|---|---|---|
-| `name` | `str` | Artifact name |
-| `version` | `str` | Version string |
-| `path` | `Path` | Absolute path to saved artifact |
-| `artifact_type` | `ArtifactType` | Artifact classification |
-| `size_bytes` | `int` | Size of saved artifact in bytes |
-| `created_at` | `datetime` | UTC creation timestamp |
+| Field           | Type           | Description                     |
+|-----------------|----------------|---------------------------------|
+| `name`          | `str`          | Artifact name                   |
+| `version`       | `str`          | Version string                  |
+| `path`          | `Path`         | Absolute path to saved artifact |
+| `artifact_type` | `ArtifactType` | Artifact classification         |
+| `size_bytes`    | `int`          | Size of saved artifact in bytes |
+| `created_at`    | `datetime`     | UTC creation timestamp          |
 
 ### `ArtifactType` values
 
-| Value | String | Description |
-|---|---|---|
-| `ArtifactType.CHECKPOINT` | `"checkpoint"` | Model checkpoints |
-| `ArtifactType.DATASET` | `"dataset"` | Dataset files |
-| `ArtifactType.OUTPUT` | `"output"` | Output files |
-| `ArtifactType.GENERIC` | `"generic"` | Unclassified artifacts |
+| Value                     | String         | Description            |
+|---------------------------|----------------|------------------------|
+| `ArtifactType.CHECKPOINT` | `"checkpoint"` | Model checkpoints      |
+| `ArtifactType.DATASET`    | `"dataset"`    | Dataset files          |
+| `ArtifactType.OUTPUT`     | `"output"`     | Output files           |
+| `ArtifactType.GENERIC`    | `"generic"`    | Unclassified artifacts |
 
 ## Path Convention
 
@@ -114,12 +115,12 @@ artifacts/dataset/train_split/epoch_0005/train.csv
 
 ## Versioning Strategies
 
-| Strategy | Behavior |
-|---|---|
-| `run_id` | Uses the `run_id` passed to the manager (required) |
-| `epoch` | Formats integer version as `"epoch_{n:04d}"` |
-| `timestamp` | Generates UTC timestamp `"YYYYMMDD_HHMMSS"` |
-| `manual` | Requires explicit version string from caller |
+| Strategy    | Behavior                                                                                              |
+|-------------|-------------------------------------------------------------------------------------------------------|
+| `run_id`    | Uses the runtime-generated `run_id` from `bootstrap()` or the explicit `run_id` passed to the manager |
+| `epoch`     | Formats integer version as `"epoch_{n:04d}"`                                                          |
+| `timestamp` | Generates UTC timestamp `"YYYYMMDD_HHMMSS"`                                                           |
+| `manual`    | Requires explicit version string from caller                                                          |
 
 ## Usage
 
@@ -130,6 +131,7 @@ from starter.runtime import bootstrap
 from starter.artifacts import ArtifactType
 
 with bootstrap() as ctx:
+    ctx.logger.info(f"run_id={ctx.run_id}")
     record = ctx.artifact_manager.save(
         "model.pt",
         name="best_model",
@@ -155,9 +157,14 @@ mgr = build_artifact_manager(
 record = mgr.save("model.pt", "best_model", ArtifactType.CHECKPOINT, version="v1")
 ```
 
+When `versioning_strategy="run_id"`, the recommended path is to construct the manager through `bootstrap()` so the
+runtime-generated `run_id` is wired automatically.
+
 ## Tracker Integration
 
-When a `Tracker` is provided to `build_artifact_manager()`, `save()` automatically calls `tracker.log_artifact(path, name=name)` after saving. Exceptions from the tracker are suppressed and logged as warnings — the pipeline is never interrupted by tracker failures.
+When a `Tracker` is provided to `build_artifact_manager()`, `save()` automatically calls
+`tracker.log_artifact(path, name=name)` after saving. Exceptions from the tracker are suppressed and logged as
+warnings — the pipeline is never interrupted by tracker failures.
 
 ## Design Rules
 

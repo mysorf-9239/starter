@@ -22,6 +22,7 @@ from starter.sweeps import (
     run_sweep,
 )
 from starter.sweeps.backends.local import LocalRunner
+from starter.sweeps.backends.wandb import WandbRunner
 from starter.sweeps.core.strategies import GridStrategy, RandomStrategy
 from starter.sweeps.core.validate import validate_sweeps_config
 
@@ -170,6 +171,12 @@ def test_validate_random_without_n_trials_raises() -> None:
         validate_sweeps_config(cfg)
 
 
+def test_validate_disabled_sweeps_raises() -> None:
+    cfg = SweepsConfig(enabled=False)
+    with pytest.raises(ValueError, match="enabled"):
+        validate_sweeps_config(cfg)
+
+
 # Feature: sweeps-subsystem, Property 13: Validation từ chối backend không hợp lệ
 @given(st.text(min_size=1).filter(lambda s: s not in {"local", "wandb"}))
 @settings(max_examples=100)
@@ -215,6 +222,72 @@ def test_grid_strategy_override_format() -> None:
     space = SearchSpace(params=[CategoricalParam(name="lr", values=[0.001])])
     sets = GridStrategy().generate(space)
     assert sets[0][0] == "lr=0.001"
+
+
+def test_local_runner_tears_down_each_trial(monkeypatch: pytest.MonkeyPatch) -> None:
+    import starter.runtime
+
+    events: list[str] = []
+
+    class DummyContext:
+        def __enter__(self) -> DummyContext:
+            events.append("enter")
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            events.append("exit")
+
+    def fake_bootstrap(overrides: list[str] | None = None) -> DummyContext:
+        assert overrides == ["runtime.seed=1"]
+        events.append("bootstrap")
+        return DummyContext()
+
+    monkeypatch.setattr(starter.runtime, "bootstrap", fake_bootstrap)
+    runner = LocalRunner(base_overrides=["runtime.seed=1"])
+    summary = runner.run([["lr=0.1"], ["lr=0.2"]], lambda ctx, params: {"loss": 1.0})
+
+    assert summary.n_success == 2
+    assert events == ["bootstrap", "enter", "exit", "bootstrap", "enter", "exit"]
+
+
+def test_local_runner_tears_down_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    import starter.runtime
+
+    events: list[str] = []
+
+    class DummyContext:
+        def __enter__(self) -> DummyContext:
+            events.append("enter")
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            events.append("exit")
+
+    monkeypatch.setattr(starter.runtime, "bootstrap", lambda overrides=None: DummyContext())
+    runner = LocalRunner(base_overrides=[])
+    summary = runner.run(
+        [["lr=0.1"]], lambda ctx, params: (_ for _ in ()).throw(RuntimeError("boom"))
+    )
+
+    assert summary.n_failed == 1
+    assert events == ["enter", "exit"]
+
+
+def test_wandb_runner_builds_grid_config() -> None:
+    space = SearchSpace(params=[CategoricalParam(name="lr", values=[0.001, 0.01])])
+    runner = WandbRunner(search_space=space, config=SweepsConfig(backend="wandb", strategy="grid"))
+
+    assert runner._build_sweep_config()["method"] == "grid"
+
+
+def test_wandb_runner_builds_random_config() -> None:
+    space = SearchSpace(params=[CategoricalParam(name="lr", values=[0.001, 0.01])])
+    runner = WandbRunner(
+        search_space=space,
+        config=SweepsConfig(backend="wandb", strategy="random", n_trials=3),
+    )
+
+    assert runner._build_sweep_config()["method"] == "random"
 
 
 # Feature: sweeps-subsystem, Property 3: Grid strategy sinh đúng số lượng override sets

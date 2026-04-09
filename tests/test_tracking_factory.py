@@ -1,7 +1,6 @@
-import os
-import subprocess
-import sys
-from pathlib import Path
+import builtins
+from typing import Any
+from unittest.mock import patch
 
 from starter.config import compose_typed_config
 from starter.tracking import NullTracker, build_tracker, parse_tracking_config
@@ -92,27 +91,34 @@ def test_build_wandb_tracker_returns_backend_instance() -> None:
 
 
 def test_wandb_tracker_raises_clear_error_when_dependency_is_missing() -> None:
-    env = os.environ.copy()
-    env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1])
-    completed = subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            (
-                "from starter.tracking import build_tracker; "
-                "tracker = build_tracker({"
-                "'backend': 'wandb', 'enabled': True, "
-                "'wandb': {'project': 'starter', 'mode': 'offline', 'tags': [], "
-                "'entity': None, 'api_key': None, 'group': None, 'job_type': None, 'notes': None}"
-                "}); "
-                "tracker.start_run()"
-            ),
-        ],
-        capture_output=True,
-        text=True,
-        env=env,
-        check=False,
+    tracker = build_tracker(
+        {
+            "backend": "wandb",
+            "enabled": True,
+            "wandb": {
+                "project": "starter",
+                "mode": "offline",
+                "tags": [],
+                "entity": None,
+                "api_key": None,
+                "group": None,
+                "job_type": None,
+                "notes": None,
+            },
+        }
     )
 
-    assert completed.returncode != 0
-    assert "tracking-wandb" in completed.stderr or "tracking-wandb" in completed.stdout
+    original_import = builtins.__import__
+
+    def fake_import(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name == "wandb":
+            raise ImportError("wandb unavailable")
+        return original_import(name, *args, **kwargs)
+
+    with patch("builtins.__import__", side_effect=fake_import):
+        try:
+            tracker.start_run()
+        except RuntimeError as exc:
+            assert "tracking-wandb" in str(exc)
+        else:
+            raise AssertionError("Expected a clear runtime error when wandb is unavailable.")

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from .schema import LoggingConfig
 
 _VALID_BACKENDS = {"disabled", "console", "file", "structlog", "rich"}
@@ -27,10 +25,8 @@ def validate_logging_config(cfg: LoggingConfig) -> None:
         raise ValueError("logging.level must be one of: CRITICAL, ERROR, WARNING, INFO, DEBUG.")
     if cfg.backend == "disabled" and cfg.enabled:
         raise ValueError("logging.enabled must be false when backend is disabled.")
-    if cfg.backend == "file":
-        if not cfg.path:
-            raise ValueError("logging.path is required when backend is file.")
-        Path(cfg.path).expanduser().resolve().parent.mkdir(parents=True, exist_ok=True)
+    if cfg.backend == "file" and not cfg.path:
+        raise ValueError("logging.path is required when backend is file.")
     if cfg.json and cfg.backend not in {"file", "structlog"}:
         raise ValueError("logging.json is only supported for file or structlog backends.")
     if cfg.backend == "rich" and cfg.path is not None:

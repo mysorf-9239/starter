@@ -1,5 +1,0 @@
-backend: pandas
-enabled: true
-top_k: 5
-numeric_stats: true
-sample_size: null
